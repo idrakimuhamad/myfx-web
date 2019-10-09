@@ -4,15 +4,14 @@ import dayjs from 'dayjs'
 import 'dayjs/locale/en-SG'
 import relativeTime from 'dayjs/plugin/relativeTime'
 
-const ACCOUNTS_API = 'http://localhost:3000/api/open-trades'
-const GAINS_API = 'http://localhost:3000/api/gains'
+const ACCOUNTS_API = '/api/open-trades'
+const GAINS_API = '/api/gains'
 
 dayjs.extend(relativeTime)
 
 const Account = ({ name, lastUpdateDate, id, session, currency, balance, equity, profit }) => {
   const [trades, setTrades] = useState([])
   const [weeklyGain, setweeklyGain] = useState(0)
-  let pollInterval
 
   const getOpenTrade = async () => {
     try {
@@ -76,26 +75,9 @@ const Account = ({ name, lastUpdateDate, id, session, currency, balance, equity,
     )
   }
 
-  const handlePolling = () => {
-    console.log('start polling')
-
-    if (pollInterval) clearInterval(pollInterval)
-
-    pollInterval = setInterval(() => {
-      console.log('Refreshing data...')
-      getOpenTrade()
-      getCurrentWeekGain()
-    }, 1000 * 60 * 5)
-  }
-
   useEffect(() => {
     getOpenTrade()
     getCurrentWeekGain()
-    handlePolling()
-
-    return function clear() {
-      if (pollInterval) clearInterval(pollInterval)
-    }
   }, [session, id])
 
   return (
