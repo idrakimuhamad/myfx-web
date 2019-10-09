@@ -119,6 +119,18 @@ const Accounts = () => {
           }
         }
       `}</style>
+      <style global jsx>{`
+        html,
+        body {
+          overflow-x: hidden;
+          overflow-y: auto;
+          height: 100vh;
+        }
+        body,
+        .wrapper {
+          background-color: #262b34;
+        }
+      `}</style>
     </div>
   )
 }
