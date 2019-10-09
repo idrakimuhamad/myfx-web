@@ -15,8 +15,6 @@ class CustomDoc extends Document {
         />
         <Head />
         <body>
-          <Main />
-          <NextScript />
           <style global jsx>{`
             html,
             body {
@@ -29,6 +27,8 @@ class CustomDoc extends Document {
               background-color: #262b34;
             }
           `}</style>
+          <Main />
+          <NextScript />
         </body>
       </Html>
     )

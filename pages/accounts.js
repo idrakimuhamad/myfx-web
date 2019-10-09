@@ -89,6 +89,9 @@ const Accounts = () => {
         </div>
       </div>
       <style jsx>{`
+        .wrapper {
+          background-color: #262b34;
+        }
         .top-header {
           flex-direction: row;
           justify-content: space-between;
