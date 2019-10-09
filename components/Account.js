@@ -12,6 +12,7 @@ dayjs.extend(relativeTime)
 const Account = ({ name, lastUpdateDate, id, session, currency, balance, equity, profit }) => {
   const [trades, setTrades] = useState([])
   const [weeklyGain, setweeklyGain] = useState(0)
+  let pollInterval
 
   const getOpenTrade = async () => {
     try {
@@ -75,9 +76,26 @@ const Account = ({ name, lastUpdateDate, id, session, currency, balance, equity,
     )
   }
 
+  const handlePolling = () => {
+    console.log('start polling')
+
+    if (pollInterval) clearInterval(pollInterval)
+
+    pollInterval = setInterval(() => {
+      console.log('Refreshing data...')
+      getOpenTrade()
+      getCurrentWeekGain()
+    }, 1000 * 60 * 5)
+  }
+
   useEffect(() => {
     getOpenTrade()
     getCurrentWeekGain()
+    handlePolling()
+
+    return function clear() {
+      if (pollInterval) clearInterval(pollInterval)
+    }
   }, [session, id])
 
   return (
@@ -107,6 +125,20 @@ const Account = ({ name, lastUpdateDate, id, session, currency, balance, equity,
                 }`}>
                 {parseFloat(profit) > 0 ? '+' : ''}
                 {profit} {currency}
+              </span>
+            </div>
+            <div className="weekly-gain">
+              <span className="label">Week's Gained</span>
+              <span
+                className={`label value float ${
+                  weeklyGain === 0
+                    ? 'rgba(255,255,255, .5)'
+                    : weeklyGain > 0
+                    ? 'has-text-success'
+                    : 'has-text-danger'
+                }`}>
+                {weeklyGain > 0 ? '+' : ''}
+                {weeklyGain.toFixed(2)}%
               </span>
             </div>
           </div>
@@ -150,7 +182,8 @@ const Account = ({ name, lastUpdateDate, id, session, currency, balance, equity,
         .float {
           color: rgba(255, 255, 255, 0.5);
         }
-        .balance-equity {
+        .balance-equity,
+        .profit {
           margin-bottom: 0.6rem;
         }
         .last-updated {
