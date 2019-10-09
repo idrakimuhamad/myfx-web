@@ -99,7 +99,7 @@ const Account = ({ name, lastUpdateDate, id, session, currency, balance, equity,
   }, [session, id])
 
   return (
-    <div className="account">
+    <div className="account is-block-mobile">
       <div className="card">
         <div className="card-content">
           <div className="main is-flex">
@@ -190,6 +190,11 @@ const Account = ({ name, lastUpdateDate, id, session, currency, balance, equity,
           padding: 0.5rem 0;
           font-size: 0.7rem;
           color: rgba(255, 255, 255, 0.15);
+        }
+        @media screen and (max-width: 768px) {
+          .account {
+            width: 100%;
+          }
         }
       `}</style>
     </div>

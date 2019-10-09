@@ -78,7 +78,7 @@ const Accounts = () => {
             Logout
           </button>
         </div>
-        <div className="account-list is-flex">
+        <div className="account-list is-flex-tablet">
           {loading && <span className="has-text-white">Retrieving account</span>}
           {!loading && !accounts.length && (
             <span className="has-text-white">No account found. Try to create one in MyFxbook</span>
@@ -105,6 +105,15 @@ const Accounts = () => {
           flex-wrap: wrap;
           align-items: center;
           margin: 0 -1rem 0;
+        }
+        @media screen and (max-width: 768px) {
+          .top-header {
+            padding: 0 1rem;
+          }
+          .account-list {
+            flex-direction: column;
+            margin: 0;
+          }
         }
       `}</style>
     </div>
