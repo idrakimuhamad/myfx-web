@@ -4,10 +4,10 @@ import { Flex, Box } from "reflexbox";
 import dayjs from "dayjs";
 import "dayjs/locale/en-SG";
 import relativeTime from "dayjs/plugin/relativeTime";
+import Modal from "../components/Modal";
 
 const ACCOUNTS_API = "/api/open-trades";
 const GAINS_API = "/api/gains";
-const DAILY_GAIN_API = "/api/daily-gain";
 
 dayjs.extend(relativeTime);
 
@@ -24,6 +24,7 @@ const Account = ({
   const [trades, setTrades] = useState([]);
   const [weeklyGain, setweeklyGain] = useState(0);
   const [dailyGain, setDailyGain] = useState(0);
+  const [modalVisible, setModal] = useState(false);
 
   const getOpenTrade = useCallback(async () => {
     try {
@@ -80,7 +81,7 @@ const Account = ({
     const today = dayjs().format("YYYY-MM-DD");
 
     try {
-      const response = await axios.get(DAILY_GAIN_API, {
+      const response = await axios.get(GAINS_API, {
         params: {
           start: today,
           end: today,
@@ -90,12 +91,14 @@ const Account = ({
       });
 
       if (response.status === 200) {
-        if (
-          !response.data.error &&
-          response.data.dailyGain &&
-          response.data.dailyGain.length
-        ) {
-          setDailyGain(response.data.dailyGain[0][0].value);
+        if (!response.data.error && response.data.value) {
+          console.log(
+            `Get daily gain for ${today}: ${JSON.stringify(
+              response.data.value
+            )}`
+          );
+
+          setDailyGain(response.data.value);
         }
       }
     } catch (error) {
@@ -105,18 +108,30 @@ const Account = ({
 
   const calculateTotalPL = () => {
     if (trades && !trades.length)
-      return <span className="float">0.00 {currency}</span>;
+      return <span className="float float-text">0.00 {currency}</span>;
     const total = trades.reduce((m, trade) => m + trade.profit, 0);
     return (
       <Box
         as="span"
         fontWeight="bold"
-        className={`${total < 0 ? "has-text-danger" : "has-text-success"}`}
+        className={`float-text ${
+          total < 0 ? "has-text-danger" : "has-text-success"
+        }`}
       >
         {total > 0 ? "+" : ""}
         {total.toFixed(2)} {currency}
       </Box>
     );
+  };
+
+  const handleShowDetails = () => {
+    console.log("open details");
+
+    setModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setModal(false);
   };
 
   useEffect(() => {
@@ -126,123 +141,135 @@ const Account = ({
   }, [session, id, getOpenTrade, getCurrentWeekGain, getDailyGain]);
 
   return (
-    <div className="account is-block-mobile">
-      <div className="card">
-        <div className="card-content">
-          <Flex
-            flexDirection="row"
-            justifyContent="space-between"
-            className="main"
-          >
-            <h5 className="sub-title">{name}</h5>
-            {calculateTotalPL()}
-          </Flex>
-          <div className="meta">
-            <div className="balance-equity">
-              <span className="label">Balance/Equity</span>
-              <span className="label value float">
-                {balance} / {equity} {currency}
-              </span>
+    <>
+      <div className="account is-block-mobile">
+        <div className="card" onClick={handleShowDetails}>
+          <div className="card-content">
+            <Flex
+              flexDirection="row"
+              justifyContent="space-between"
+              className="main"
+            >
+              <h5 className="sub-title">{name}</h5>
+              {calculateTotalPL()}
+            </Flex>
+            <div className="meta">
+              <div className="balance-equity">
+                <span className="label">Balance/Equity</span>
+                <span className="label value float">
+                  {balance} / {equity} {currency}
+                </span>
+              </div>
+              <div className="profit">
+                <span className="label">Profit</span>
+                <span
+                  className={`label value float ${
+                    parseFloat(profit) === 0
+                      ? "rgba(255,255,255, .5)"
+                      : parseFloat(profit) > 0
+                      ? "has-text-success"
+                      : "has-text-danger"
+                  }`}
+                >
+                  {parseFloat(profit) > 0 ? "+" : ""}
+                  {profit} {currency}
+                </span>
+              </div>
+              <div className="weekly-gain">
+                <span className="label">This Week's Gain</span>
+                <span
+                  className={`label value float ${
+                    weeklyGain === 0
+                      ? "rgba(255,255,255, .5)"
+                      : weeklyGain > 0
+                      ? "has-text-success"
+                      : "has-text-danger"
+                  }`}
+                >
+                  {weeklyGain > 0 ? "+" : ""}
+                  {weeklyGain.toFixed(2)}%
+                </span>
+              </div>
+              <Box className="daily-gain" mt={2}>
+                <span className="label">Today's Gain</span>
+                <span
+                  className={`label value float ${
+                    dailyGain === 0
+                      ? "rgba(255,255,255, .5)"
+                      : dailyGain > 0
+                      ? "has-text-success"
+                      : "has-text-danger"
+                  } `}
+                >
+                  {dailyGain > 0 ? "+" : ""}
+                  {dailyGain && dailyGain.toFixed(2)}%
+                </span>
+              </Box>
             </div>
-            <div className="profit">
-              <span className="label">Profit</span>
-              <span
-                className={`label value float ${
-                  parseFloat(profit) === 0
-                    ? "rgba(255,255,255, .5)"
-                    : parseFloat(profit) > 0
-                    ? "has-text-success"
-                    : "has-text-danger"
-                }`}
-              >
-                {parseFloat(profit) > 0 ? "+" : ""}
-                {profit} {currency}
-              </span>
+            <div className="last-updated">
+              <p>
+                Updated{" "}
+                {dayjs(lastUpdateDate)
+                  .add(dayjs().utcOffset(), "minute")
+                  .fromNow()}
+              </p>
             </div>
-            <div className="weekly-gain">
-              <span className="label">This Week's Gain</span>
-              <span
-                className={`label value float ${
-                  weeklyGain === 0
-                    ? "rgba(255,255,255, .5)"
-                    : weeklyGain > 0
-                    ? "has-text-success"
-                    : "has-text-danger"
-                }`}
-              >
-                {weeklyGain > 0 ? "+" : ""}
-                {weeklyGain.toFixed(2)}%
-              </span>
-            </div>
-            <Box className="daily-gain" mt={2}>
-              <span className="label">Today's Gain</span>
-              <span
-                className={`label value float ${
-                  dailyGain === 0
-                    ? "rgba(255,255,255, .5)"
-                    : dailyGain > 0
-                    ? "has-text-success"
-                    : "has-text-danger"
-                } `}
-              >
-                {dailyGain > 0 ? "+" : ""}
-                {dailyGain && dailyGain.toFixed(2)}%
-              </span>
-            </Box>
-          </div>
-          <div className="last-updated">
-            <p>
-              Updated{" "}
-              {dayjs(lastUpdateDate)
-                .add(dayjs().utcOffset(), "minute")
-                .fromNow()}
-            </p>
           </div>
         </div>
-      </div>
-      <style jsx>{`
-        .sub-title {
-          color: rgba(255, 255, 255, 0.7);
-        }
-        .account {
-          width: calc(100% / 3);
-          padding: 0 1rem 2rem;
-        }
-        .card {
-          border-radius: 4px;
-          background-color: rgba(255, 255, 255, 0.025);
-        }
-        .meta {
-          padding: 0.8rem 0;
-        }
-        .label {
-          color: rgba(255, 255, 255, 0.25);
-          font-size: 0.6rem;
-          line-height: 1;
-        }
-        .value {
-          font-size: 0.9em;
-        }
-        .float {
-          color: rgba(255, 255, 255, 0.5);
-          font-weight: bold;
-        }
-        .balance-equity,
-        .profit {
-          margin-bottom: 0.6rem;
-        }
-        .last-updated {
-          padding: 0.5rem 0;
-          font-size: 0.7rem;
-          color: rgba(255, 255, 255, 0.15);
-        }
-        @media screen and (max-width: 768px) {
-          .account {
-            width: 100%;
+        <style jsx>{`
+          .sub-title {
+            color: rgba(255, 255, 255, 0.7);
           }
-        }
-      `}</style>
-    </div>
+          .sub-title,
+          .float-text {
+            max-width: 50%;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+          }
+          .account {
+            width: calc(100% / 3);
+            padding: 0 1rem 2rem;
+          }
+          .card {
+            border-radius: 4px;
+            background-color: rgba(255, 255, 255, 0.025);
+            z-index: 7;
+            position: relative;
+          }
+          .meta {
+            padding: 0.8rem 0;
+          }
+          .label {
+            color: rgba(255, 255, 255, 0.25);
+            font-size: 0.6rem;
+            line-height: 1;
+          }
+          .value {
+            font-size: 0.9em;
+          }
+          .float {
+            color: rgba(255, 255, 255, 0.5);
+            font-weight: bold;
+          }
+          .balance-equity,
+          .profit {
+            margin-bottom: 0.6rem;
+          }
+          .last-updated {
+            padding: 0.5rem 0;
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.15);
+          }
+          @media screen and (max-width: 768px) {
+            .account {
+              width: 100%;
+            }
+          }
+        `}</style>
+      </div>
+      {modalVisible && <Modal onClose={handleCloseModal} />}
+    </>
   );
 };
 

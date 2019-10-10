@@ -96,8 +96,7 @@ const Accounts = () => {
         if (!request.data.error) {
           console.log(`Logged out`);
           localStorage.clear();
-          setSession(null);
-          setLoadingLogout(false);
+
           router.replace("/");
         }
       }
