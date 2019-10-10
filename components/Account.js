@@ -1,46 +1,58 @@
-import React, { useState, useEffect } from 'react'
-import axios from 'axios'
-import dayjs from 'dayjs'
-import 'dayjs/locale/en-SG'
-import relativeTime from 'dayjs/plugin/relativeTime'
+import React, { useState, useEffect, useCallback } from "react";
+import axios from "axios";
+import { Flex, Box } from "reflexbox";
+import dayjs from "dayjs";
+import "dayjs/locale/en-SG";
+import relativeTime from "dayjs/plugin/relativeTime";
 
-const ACCOUNTS_API = '/api/open-trades'
-const GAINS_API = '/api/gains'
+const ACCOUNTS_API = "/api/open-trades";
+const GAINS_API = "/api/gains";
+const DAILY_GAIN_API = "/api/daily-gain";
 
-dayjs.extend(relativeTime)
+dayjs.extend(relativeTime);
 
-const Account = ({ name, lastUpdateDate, id, session, currency, balance, equity, profit }) => {
-  const [trades, setTrades] = useState([])
-  const [weeklyGain, setweeklyGain] = useState(0)
+const Account = ({
+  name,
+  lastUpdateDate,
+  id,
+  session,
+  currency,
+  balance,
+  equity,
+  profit
+}) => {
+  const [trades, setTrades] = useState([]);
+  const [weeklyGain, setweeklyGain] = useState(0);
+  const [dailyGain, setDailyGain] = useState(0);
 
-  const getOpenTrade = async () => {
+  const getOpenTrade = useCallback(async () => {
     try {
       const request = await axios.get(ACCOUNTS_API, {
         params: {
           session,
           id
         }
-      })
+      });
 
       if (request.status === 200) {
         if (!request.data.error && request.data.openTrades) {
-          console.log(`Trades received.. ${request.data.openTrades}`)
+          console.log(`Trades received.. ${request.data.openTrades}`);
 
-          setTrades(request.data.openTrades)
+          setTrades(request.data.openTrades);
         }
       }
     } catch (error) {
-      console.log(error)
+      console.log(error);
     }
-  }
+  }, [id, session]);
 
-  const getCurrentWeekGain = async () => {
+  const getCurrentWeekGain = useCallback(async () => {
     const startOfWeek = dayjs()
-      .startOf('week')
-      .format('YYYY-MM-DD')
+      .startOf("week")
+      .format("YYYY-MM-DD");
     const endOfWeek = dayjs()
-      .endOf('week')
-      .format('YYYY-MM-DD')
+      .endOf("week")
+      .format("YYYY-MM-DD");
 
     try {
       const request = await axios.get(GAINS_API, {
@@ -50,44 +62,81 @@ const Account = ({ name, lastUpdateDate, id, session, currency, balance, equity,
           start: startOfWeek,
           end: endOfWeek
         }
-      })
+      });
 
       if (request.status === 200) {
         if (!request.data.error && request.data.value) {
-          console.log(`Gains received.. ${request.data.value}`)
+          console.log(`Gains received.. ${request.data.value}`);
 
-          setweeklyGain(request.data.value)
+          setweeklyGain(request.data.value);
         }
       }
     } catch (error) {
-      console.log(error)
+      console.log(error);
     }
-  }
+  }, [id, session]);
+
+  const getDailyGain = useCallback(async () => {
+    const today = dayjs().format("YYYY-MM-DD");
+
+    try {
+      const response = await axios.get(DAILY_GAIN_API, {
+        params: {
+          start: today,
+          end: today,
+          session,
+          id
+        }
+      });
+
+      if (response.status === 200) {
+        if (
+          !response.data.error &&
+          response.data.dailyGain &&
+          response.data.dailyGain.length
+        ) {
+          setDailyGain(response.data.dailyGain[0][0].value);
+        }
+      }
+    } catch (error) {
+      console.error(error.message);
+    }
+  }, [id, session]);
 
   const calculateTotalPL = () => {
-    if (trades && !trades.length) return <span className="float">0.00 {currency}</span>
-    const total = trades.reduce((m, trade) => m + trade.profit, 0)
+    if (trades && !trades.length)
+      return <span className="float">0.00 {currency}</span>;
+    const total = trades.reduce((m, trade) => m + trade.profit, 0);
     return (
-      <span className={`float ${total < 0 ? 'has-text-danger' : 'has-text-success'}`}>
-        {total > 0 ? '+' : ''}
+      <Box
+        as="span"
+        fontWeight="bold"
+        className={`${total < 0 ? "has-text-danger" : "has-text-success"}`}
+      >
+        {total > 0 ? "+" : ""}
         {total.toFixed(2)} {currency}
-      </span>
-    )
-  }
+      </Box>
+    );
+  };
 
   useEffect(() => {
-    getOpenTrade()
-    getCurrentWeekGain()
-  }, [session, id])
+    getOpenTrade();
+    getCurrentWeekGain();
+    getDailyGain();
+  }, [session, id, getOpenTrade, getCurrentWeekGain, getDailyGain]);
 
   return (
     <div className="account is-block-mobile">
       <div className="card">
         <div className="card-content">
-          <div className="main is-flex">
+          <Flex
+            flexDirection="row"
+            justifyContent="space-between"
+            className="main"
+          >
             <h5 className="sub-title">{name}</h5>
             {calculateTotalPL()}
-          </div>
+          </Flex>
           <div className="meta">
             <div className="balance-equity">
               <span className="label">Balance/Equity</span>
@@ -100,45 +149,58 @@ const Account = ({ name, lastUpdateDate, id, session, currency, balance, equity,
               <span
                 className={`label value float ${
                   parseFloat(profit) === 0
-                    ? 'rgba(255,255,255, .5)'
+                    ? "rgba(255,255,255, .5)"
                     : parseFloat(profit) > 0
-                    ? 'has-text-success'
-                    : 'has-text-danger'
-                }`}>
-                {parseFloat(profit) > 0 ? '+' : ''}
+                    ? "has-text-success"
+                    : "has-text-danger"
+                }`}
+              >
+                {parseFloat(profit) > 0 ? "+" : ""}
                 {profit} {currency}
               </span>
             </div>
             <div className="weekly-gain">
-              <span className="label">Week's Gained</span>
+              <span className="label">This Week's Gain</span>
               <span
                 className={`label value float ${
                   weeklyGain === 0
-                    ? 'rgba(255,255,255, .5)'
+                    ? "rgba(255,255,255, .5)"
                     : weeklyGain > 0
-                    ? 'has-text-success'
-                    : 'has-text-danger'
-                }`}>
-                {weeklyGain > 0 ? '+' : ''}
+                    ? "has-text-success"
+                    : "has-text-danger"
+                }`}
+              >
+                {weeklyGain > 0 ? "+" : ""}
                 {weeklyGain.toFixed(2)}%
               </span>
             </div>
+            <Box className="daily-gain" mt={2}>
+              <span className="label">Today's Gain</span>
+              <span
+                className={`label value float ${
+                  dailyGain === 0
+                    ? "rgba(255,255,255, .5)"
+                    : dailyGain > 0
+                    ? "has-text-success"
+                    : "has-text-danger"
+                } `}
+              >
+                {dailyGain > 0 ? "+" : ""}
+                {dailyGain && dailyGain.toFixed(2)}%
+              </span>
+            </Box>
           </div>
           <div className="last-updated">
             <p>
-              Updated{' '}
+              Updated{" "}
               {dayjs(lastUpdateDate)
-                .add(dayjs().utcOffset(), 'minute')
+                .add(dayjs().utcOffset(), "minute")
                 .fromNow()}
             </p>
           </div>
         </div>
       </div>
       <style jsx>{`
-        .main {
-          flex-direction: row;
-          justify-content: space-between;
-        }
         .sub-title {
           color: rgba(255, 255, 255, 0.7);
         }
@@ -163,6 +225,7 @@ const Account = ({ name, lastUpdateDate, id, session, currency, balance, equity,
         }
         .float {
           color: rgba(255, 255, 255, 0.5);
+          font-weight: bold;
         }
         .balance-equity,
         .profit {
@@ -180,7 +243,7 @@ const Account = ({ name, lastUpdateDate, id, session, currency, balance, equity,
         }
       `}</style>
     </div>
-  )
-}
+  );
+};
 
-export default Account
+export default Account;
