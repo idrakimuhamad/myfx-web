@@ -58,30 +58,45 @@ const Accounts = () => {
   const [accounts, setAccounts] = useState([]);
   let pollInterval;
 
+  const finishLogout = useCallback(() => {
+    localStorage.clear();
+    router.replace("/");
+  }, [router]);
+
   const getAccounts = useCallback(async () => {
-    setLoading(true);
-    try {
-      const request = await axios.get(ACCOUNTS_API, {
-        params: {
-          session
-        }
-      });
+    if (session) {
+      setLoading(true);
+      try {
+        const request = await axios.get(ACCOUNTS_API, {
+          params: {
+            session
+          }
+        });
 
-      if (request.status === 200) {
-        if (!request.data.error && request.data.accounts) {
-          console.log(`Accounts received... Account ${request.data.accounts}`);
+        if (request.status === 200) {
+          if (!request.data.error && request.data.accounts) {
+            console.log(
+              `Accounts received... Account ${request.data.accounts}`
+            );
 
-          setAccounts(request.data.accounts);
+            setAccounts(request.data.accounts);
+          } else {
+            throw new Error(request.data.message);
+          }
         }
+      } catch (error) {
+        console.log(error);
+        if (error.message === "Invalid session") {
+          // invalidate and logout
+          finishLogout();
+        }
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.log(error);
-    } finally {
-      setLoading(false);
     }
-  }, [session]);
+  }, [session, finishLogout]);
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     console.log("Logging out...");
     setLoadingLogout(true);
 
@@ -95,15 +110,17 @@ const Accounts = () => {
       if (request.status === 200) {
         if (!request.data.error) {
           console.log(`Logged out`);
-          localStorage.clear();
-
-          router.replace("/");
         }
+      } else {
+        throw new Error(request.data.message);
       }
     } catch (error) {
       console.log("error when logging out.", error.message);
+    } finally {
+      console.log("Clear session");
+      finishLogout();
     }
-  };
+  }, [session, finishLogout]);
 
   const handlePolling = () => {
     console.log("start polling");

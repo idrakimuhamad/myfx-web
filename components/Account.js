@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import axios from "axios";
 import { Flex, Box } from "reflexbox";
 import dayjs from "dayjs";
@@ -25,8 +25,12 @@ const Account = ({
   const [weeklyGain, setweeklyGain] = useState(0);
   const [dailyGain, setDailyGain] = useState(0);
   const [modalVisible, setModal] = useState(false);
+  const [lastUpdated, setTimeUpdated] = useState("");
+  const updateTimeInterval = useRef();
 
   const getOpenTrade = useCallback(async () => {
+    updateTrackingTime(lastUpdated);
+
     try {
       const request = await axios.get(ACCOUNTS_API, {
         params: {
@@ -45,7 +49,7 @@ const Account = ({
     } catch (error) {
       console.log(error);
     }
-  }, [id, session]);
+  }, [id, session, updateTrackingTime, lastUpdated]);
 
   const getCurrentWeekGain = useCallback(async () => {
     const startOfWeek = dayjs()
@@ -130,14 +134,49 @@ const Account = ({
     setModal(true);
   };
 
-  const handleCloseModal = () => {
-    setModal(false);
-  };
+  const handleCloseModal = () => setModal(false);
+
+  const updateTrackingTime = useCallback(() => {
+    const update = dayjs(lastUpdateDate)
+      .add(dayjs().utcOffset(), "minute")
+      .fromNow();
+
+    startPollingTime(update);
+
+    setTimeUpdated(update);
+  }, [lastUpdateDate, startPollingTime]);
+
+  const startPollingTime = useCallback(
+    time => {
+      let interval = 1000;
+
+      if (time.includes("minute")) {
+        interval = 1000 * 60;
+      } else if (time.includes("hour")) {
+        interval = 1000 * 60 * 60;
+      }
+
+      console.log(`Start time update polling for ${name} in ${interval}ms...`);
+
+      if (updateTimeInterval.current) clearInterval(updateTimeInterval.current);
+
+      updateTimeInterval.current = setInterval(() => {
+        console.log(`Update time ago for ${name}s`);
+
+        updateTrackingTime(lastUpdated);
+      }, interval);
+    },
+    [updateTrackingTime, name, lastUpdated]
+  );
 
   useEffect(() => {
     getOpenTrade();
     getCurrentWeekGain();
     getDailyGain();
+
+    return function clear() {
+      if (updateTimeInterval.current) clearInterval(updateTimeInterval.current);
+    };
   }, [session, id, getOpenTrade, getCurrentWeekGain, getDailyGain]);
 
   return (
@@ -207,12 +246,7 @@ const Account = ({
               </Box>
             </div>
             <div className="last-updated">
-              <p>
-                Updated{" "}
-                {dayjs(lastUpdateDate)
-                  .add(dayjs().utcOffset(), "minute")
-                  .fromNow()}
-              </p>
+              <p>Updated {lastUpdated}</p>
             </div>
           </div>
         </div>
@@ -268,7 +302,9 @@ const Account = ({
           }
         `}</style>
       </div>
-      {modalVisible && <Modal onClose={handleCloseModal} />}
+      {modalVisible && (
+        <Modal trades={trades} currency={currency} onClose={handleCloseModal} />
+      )}
     </>
   );
 };
