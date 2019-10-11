@@ -13,6 +13,22 @@ class CustomDoc extends Document {
           rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.5/css/bulma.min.css"
         />
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta
+          name="apple-mobile-web-app-status-bar-style"
+          content="black-translucent"
+        />
+        <meta name="apple-mobile-web-app-title" content="FX Dashboard" />
+        <meta
+          name="description"
+          content="A dashboard for Myfxbook portfolios account"
+        />
+        <meta name="theme-color" content="#262b34" />
+        <link
+          rel="apple-touch-icon"
+          href="https://developers.google.com/web/images/web-fundamentals-icon192x192_2880.png"
+        />
         <Head />
         <body>
           <style global jsx>{`
