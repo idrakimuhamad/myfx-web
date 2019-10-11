@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import axios from "axios";
@@ -54,6 +54,19 @@ const Home = () => {
       }
     }
   };
+
+  const getSession = useCallback(() => {
+    const session = localStorage.getItem("session");
+
+    if (session) {
+      // redirect to account
+      router.push("/accounts");
+    }
+  }, [router]);
+
+  useEffect(() => {
+    getSession();
+  }, [getSession]);
 
   return (
     <Flex

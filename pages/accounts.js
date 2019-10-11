@@ -86,10 +86,8 @@ const Accounts = () => {
         }
       } catch (error) {
         console.log(error);
-        if (error.message === "Invalid session") {
-          // invalidate and logout
-          finishLogout();
-        }
+        // invalidate and logout
+        finishLogout();
       } finally {
         setLoading(false);
       }
@@ -189,12 +187,12 @@ const Accounts = () => {
           className="account-list"
         >
           {loading && !accounts.length && (
-            <Box as="span" px={3} className="has-text-white">
+            <Box as="span" px={3} color="rgba(255,255,255,.7)">
               Retrieving account
             </Box>
           )}
           {loading && !!accounts.length ? (
-            <Box as="span" px={3} className="has-text-white">
+            <Box as="span" px={3} color="rgba(255,255,255,.7)">
               Refreshing data...
             </Box>
           ) : (
@@ -203,7 +201,7 @@ const Accounts = () => {
             ))
           )}
           {!loading && !accounts.length && (
-            <Box as="span" px={3} className="has-text-white">
+            <Box as="span" px={3} color="rgba(255,255,255, .7)">
               No account found. Try to create one in MyFxbook
             </Box>
           )}

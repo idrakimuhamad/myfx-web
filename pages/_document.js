@@ -25,10 +25,7 @@ class CustomDoc extends Document {
           content="A dashboard for Myfxbook portfolios account"
         />
         <meta name="theme-color" content="#262b34" />
-        <link
-          rel="apple-touch-icon"
-          href="https://developers.google.com/web/images/web-fundamentals-icon192x192_2880.png"
-        />
+        <link rel="apple-touch-icon" href="/icon.png" />
         <Head />
         <body>
           <style global jsx>{`
