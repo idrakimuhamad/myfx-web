@@ -28,8 +28,14 @@ const Account = ({
   const [dailyGain, setDailyGain] = useState(0);
   const [modalVisible, setModal] = useState(false);
   const [lastUpdated, setTimeUpdated] = useState("");
-  const [dailyDetails, setDailyData] = useState(null);
-  const [weeklyDetails, setWeeklyData] = useState(null);
+  const [dailyDetails, setDailyData] = useState({
+    todaysProfit: 0,
+    todaysPips: 0
+  });
+  const [weeklyDetails, setWeeklyData] = useState({
+    weeklyProfit: 0,
+    weeklyPips: 0
+  });
   const updateTimeInterval = useRef();
 
   const getOpenTrade = useCallback(async () => {
@@ -56,7 +62,9 @@ const Account = ({
   }, [id, session, updateTrackingTime, lastUpdated]);
 
   const getDailyData = useCallback(async () => {
-    const today = dayjs().format("YYYY-MM-DD");
+    const today = dayjs()
+      .subtract(dayjs().utcOffset(), "minute")
+      .format("YYYY-MM-DD");
     try {
       const response = await axios.get(DAILY_API, {
         params: {
@@ -154,7 +162,9 @@ const Account = ({
   }, [id, session]);
 
   const getDailyGain = useCallback(async () => {
-    const today = dayjs().format("YYYY-MM-DD");
+    const today = dayjs()
+      .subtract(dayjs().utcOffset(), "minute")
+      .format("YYYY-MM-DD");
 
     try {
       const response = await axios.get(GAINS_API, {
@@ -209,7 +219,7 @@ const Account = ({
           }`}
         >
           {totalPips > 0 ? "+" : ""}
-          {totalPips.toFixed(2)} pips
+          {totalPips.toFixed(1)} pips
         </Box>
       </Box>
     );
@@ -301,16 +311,15 @@ const Account = ({
                 <span className="label">This Week</span>
                 <span
                   className={`label value float ${
-                    weeklyDetails && weeklyDetails.weeklyProfit === 0
+                    weeklyDetails.weeklyProfit === 0
                       ? "rgba(255,255,255, .5)"
-                      : weeklyDetails && weeklyDetails.weeklyProfit > 0
+                      : weeklyDetails.weeklyProfit > 0
                       ? "has-text-success"
                       : "has-text-danger"
                   }`}
                 >
-                  {weeklyDetails && weeklyDetails.weeklyProfit > 0 ? "+" : ""}
-                  {weeklyDetails && weeklyDetails.weeklyProfit.toFixed(2)}{" "}
-                  {currency}
+                  {weeklyDetails.weeklyProfit > 0 ? "+" : ""}
+                  {weeklyDetails.weeklyProfit.toFixed(2)} {currency}
                 </span>
                 <span
                   className={`label value gain float ${
@@ -329,16 +338,15 @@ const Account = ({
                 <span className="label">Today</span>
                 <span
                   className={`label value float ${
-                    dailyDetails && dailyDetails.todaysProfit === 0
+                    dailyDetails.todaysProfit === 0
                       ? "rgba(255,255,255, .5)"
-                      : dailyDetails && dailyDetails.todaysProfit > 0
+                      : dailyDetails.todaysProfit > 0
                       ? "has-text-success"
                       : "has-text-danger"
                   } `}
                 >
-                  {dailyDetails && dailyDetails.todaysProfit > 0 ? "+" : ""}
-                  {dailyDetails &&
-                    dailyDetails.todaysProfit &&
+                  {dailyDetails.todaysProfit > 0 ? "+" : ""}
+                  {dailyDetails.todaysProfit &&
                     dailyDetails.todaysProfit.toFixed(2)}{" "}
                   {currency}
                 </span>
