@@ -8,6 +8,7 @@ import Modal from "../components/Modal";
 
 const ACCOUNTS_API = "/api/open-trades";
 const GAINS_API = "/api/gains";
+const DAILY_API = "/api/daily-data";
 
 dayjs.extend(relativeTime);
 
@@ -19,13 +20,16 @@ const Account = ({
   currency,
   balance,
   equity,
-  profit
+  profit,
+  gain
 }) => {
   const [trades, setTrades] = useState([]);
   const [weeklyGain, setweeklyGain] = useState(0);
   const [dailyGain, setDailyGain] = useState(0);
   const [modalVisible, setModal] = useState(false);
   const [lastUpdated, setTimeUpdated] = useState("");
+  const [dailyDetails, setDailyData] = useState(null);
+  const [weeklyDetails, setWeeklyData] = useState(null);
   const updateTimeInterval = useRef();
 
   const getOpenTrade = useCallback(async () => {
@@ -50,6 +54,74 @@ const Account = ({
       console.log(error);
     }
   }, [id, session, updateTrackingTime, lastUpdated]);
+
+  const getDailyData = useCallback(async () => {
+    const today = dayjs().format("YYYY-MM-DD");
+    try {
+      const response = await axios.get(DAILY_API, {
+        params: {
+          session,
+          id,
+          start: today,
+          end: today
+        }
+      });
+
+      if (
+        response.status === 200 &&
+        !response.data.error &&
+        response.data.dataDaily
+      ) {
+        console.log("Received daily data");
+        const { dataDaily } = response.data;
+        const { pips: todaysPips, profit: todaysProfit } = dataDaily[0][0];
+
+        setDailyData({
+          todaysPips,
+          todaysProfit
+        });
+      } else {
+        throw new Error(response.data.message);
+      }
+    } catch (error) {}
+  }, [id, session]);
+
+  const getWeeklyData = useCallback(async () => {
+    const startOfWeek = dayjs()
+      .startOf("week")
+      .format("YYYY-MM-DD");
+    const endOfWeek = dayjs()
+      .endOf("week")
+      .format("YYYY-MM-DD");
+
+    try {
+      const request = await axios.get(DAILY_API, {
+        params: {
+          session,
+          id,
+          start: startOfWeek,
+          end: endOfWeek
+        }
+      });
+
+      if (request.status === 200) {
+        if (!request.data.error && request.data.dataDaily) {
+          console.log(`Received weekly data`);
+          const [weekly] = request.data.dataDaily;
+
+          const weeklyProfit = weekly.reduce((m, week) => week.profit + m, 0);
+          const weeklyPips = weekly.reduce((m, week) => week.pips + m, 0);
+
+          setWeeklyData({
+            weeklyProfit,
+            weeklyPips
+          });
+        }
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  }, [id, session]);
 
   const getCurrentWeekGain = useCallback(async () => {
     const startOfWeek = dayjs()
@@ -112,18 +184,33 @@ const Account = ({
 
   const calculateTotalPL = () => {
     if (trades && !trades.length)
-      return <span className="float float-text">0.00 {currency}</span>;
+      return (
+        <span className="float float-text has-text-right">0.00 {currency}</span>
+      );
     const total = trades.reduce((m, trade) => m + trade.profit, 0);
+    const totalPips = trades.reduce((m, trade) => m + trade.pips, 0);
     return (
-      <Box
-        as="span"
-        fontWeight="bold"
-        className={`float-text ${
-          total < 0 ? "has-text-danger" : "has-text-success"
-        }`}
-      >
-        {total > 0 ? "+" : ""}
-        {total.toFixed(2)} {currency}
+      <Box className="has-text-right">
+        <Box
+          fontWeight="bold"
+          className={`float-text has-text-right ${
+            total < 0 ? "has-text-danger" : "has-text-success"
+          }`}
+        >
+          {total > 0 ? "+" : ""}
+          {total.toFixed(2)} {currency}
+        </Box>
+        <Box
+          as="span"
+          fontWeight="bold"
+          fontSize={0}
+          className={`float-text has-text-right ${
+            totalPips < 0 ? "has-text-danger" : "has-text-success"
+          }`}
+        >
+          {totalPips > 0 ? "+" : ""}
+          {totalPips.toFixed(2)} pips
+        </Box>
       </Box>
     );
   };
@@ -172,12 +259,22 @@ const Account = ({
   useEffect(() => {
     getOpenTrade();
     getCurrentWeekGain();
+    getWeeklyData();
     getDailyGain();
+    getDailyData();
 
     return function clear() {
       if (updateTimeInterval.current) clearInterval(updateTimeInterval.current);
     };
-  }, [session, id, getOpenTrade, getCurrentWeekGain, getDailyGain]);
+  }, [
+    session,
+    id,
+    getOpenTrade,
+    getCurrentWeekGain,
+    getWeeklyData,
+    getDailyGain,
+    getDailyData
+  ]);
 
   return (
     <>
@@ -194,30 +291,29 @@ const Account = ({
             </Flex>
             <div className="meta">
               <div className="balance-equity">
-                <span className="label">Balance/Equity</span>
+                <span className="label">Balance / Equity</span>
                 <span className="label value float">
                   {balance} / {equity} {currency}
                 </span>
               </div>
-              <div className="profit">
-                <span className="label">Profit</span>
+
+              <div className="weekly-gain">
+                <span className="label">This Week</span>
                 <span
                   className={`label value float ${
-                    parseFloat(profit) === 0
+                    weeklyDetails && weeklyDetails.weeklyProfit === 0
                       ? "rgba(255,255,255, .5)"
-                      : parseFloat(profit) > 0
+                      : weeklyDetails && weeklyDetails.weeklyProfit > 0
                       ? "has-text-success"
                       : "has-text-danger"
                   }`}
                 >
-                  {parseFloat(profit) > 0 ? "+" : ""}
-                  {profit} {currency}
+                  {weeklyDetails && weeklyDetails.weeklyProfit > 0 ? "+" : ""}
+                  {weeklyDetails && weeklyDetails.weeklyProfit.toFixed(2)}{" "}
+                  {currency}
                 </span>
-              </div>
-              <div className="weekly-gain">
-                <span className="label">This Week's Gain</span>
                 <span
-                  className={`label value float ${
+                  className={`label value gain float ${
                     weeklyGain === 0
                       ? "rgba(255,255,255, .5)"
                       : weeklyGain > 0
@@ -230,9 +326,24 @@ const Account = ({
                 </span>
               </div>
               <Box className="daily-gain" mt={2}>
-                <span className="label">Today's Gain</span>
+                <span className="label">Today</span>
                 <span
                   className={`label value float ${
+                    dailyDetails && dailyDetails.todaysProfit === 0
+                      ? "rgba(255,255,255, .5)"
+                      : dailyDetails && dailyDetails.todaysProfit > 0
+                      ? "has-text-success"
+                      : "has-text-danger"
+                  } `}
+                >
+                  {dailyDetails && dailyDetails.todaysProfit > 0 ? "+" : ""}
+                  {dailyDetails &&
+                    dailyDetails.todaysProfit &&
+                    dailyDetails.todaysProfit.toFixed(2)}{" "}
+                  {currency}
+                </span>
+                <span
+                  className={`label value gain float ${
                     dailyGain === 0
                       ? "rgba(255,255,255, .5)"
                       : dailyGain > 0
@@ -245,6 +356,33 @@ const Account = ({
                 </span>
               </Box>
             </div>
+            <Box mb={2} className="profit">
+              <span className="label">All Time</span>
+              <span
+                className={`label value float ${
+                  parseFloat(profit) === 0
+                    ? "rgba(255,255,255, .5)"
+                    : parseFloat(profit) > 0
+                    ? "has-text-success"
+                    : "has-text-danger"
+                }`}
+              >
+                {parseFloat(profit) > 0 ? "+" : ""}
+                {profit} {currency}
+              </span>
+              <span
+                className={`label value float gain ${
+                  parseFloat(gain) === 0
+                    ? "rgba(255,255,255, .5)"
+                    : parseFloat(gain) > 0
+                    ? "has-text-success"
+                    : "has-text-danger"
+                }`}
+              >
+                {parseFloat(gain) > 0 ? "+" : ""}
+                {gain.toFixed(2)}%
+              </span>
+            </Box>
             <div className="last-updated">
               <p>Updated {lastUpdated}</p>
             </div>
@@ -282,12 +420,14 @@ const Account = ({
           .value {
             font-size: 0.9em;
           }
+          .gain {
+            font-size: 0.75em;
+          }
           .float {
             color: rgba(255, 255, 255, 0.5);
             font-weight: bold;
           }
-          .balance-equity,
-          .profit {
+          .balance-equity {
             margin-bottom: 0.6rem;
           }
           .last-updated {

@@ -42,14 +42,14 @@ const Modal = ({ trades, currency, onClose }) => {
                     "0 0 2px rgba(0,0,0, .15), inset 0 0px 1px rgba(255,255,255,.15)"
                 }}
                 mb={2}
-                py={3}
+                p={3}
               >
-                <Box px={2} width={1 / 4}>
+                <Box pr={2} width={1 / 4}>
                   <Box fontSize={2} fontWeight="bold" color="white" as="span">
                     {trade.symbol}
                   </Box>
                 </Box>
-                <Box width={1 / 4} px={2}>
+                <Box width={1 / 4} pr={2}>
                   <Box
                     py={1}
                     fontSize={1}
@@ -69,7 +69,7 @@ const Modal = ({ trades, currency, onClose }) => {
                     {dayjs(trade.openTime).format("D MMM YYYY")}
                   </Box>
                 </Box>
-                <Box px={2} className="has-text-right" flex="auto">
+                <Box className="has-text-right" flex="auto">
                   <Box
                     as="span"
                     fontWeight="bold"
